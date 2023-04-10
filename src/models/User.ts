@@ -1,5 +1,7 @@
+import { Model } from './Model';
 import { Eventing } from './Eventing';
-import { Sync } from './Sync';
+import { Attributes } from './Attributes';
+import { ApiSync } from './ApiSync';
 
 export interface UserProps {
   id?: number;
@@ -7,10 +9,12 @@ export interface UserProps {
   age?: number;
 }
 
-export class User {
-  public events: Eventing = new Eventing();
-  public Sync: Sync<UserProps> = new Sync<UserProps>(
-    'http://localhost:3000/users'
-  );
-  constructor(private data: UserProps) {}
+export class User extends Model<UserProps> {
+  static buildUser(attrs: UserProps): User {
+    return new User(
+      new Attributes<UserProps>(attrs),
+      new Eventing(),
+      new ApiSync<UserProps>('http://localhost:3000/users')
+    );
+  }
 }
