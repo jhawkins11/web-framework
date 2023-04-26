@@ -1,5 +1,11 @@
-import { User } from './models/User';
+import axios, { AxiosResponse } from 'axios'
+import { Collection } from './models/Collection'
+import { User, UserProps } from './models/User'
 
-const user = new User({ name: 'newer name', age: 0 });
+const collection = User.BuildUserCollection()
 
-user.save();
+collection.on('change', () => {
+  console.log(collection)
+})
+
+collection.fetch()
