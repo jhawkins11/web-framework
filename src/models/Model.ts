@@ -1,14 +1,14 @@
-import { AxiosPromise } from 'axios'
+import { AxiosPromise, AxiosResponse } from 'axios'
 
 interface ModelAttributes<T> {
-  get<K extends keyof T>(key: K): T[K]
-  set(update: T): void
+  set(value: T): void
   getAll(): T
+  get<K extends keyof T>(key: K): T[K]
 }
 
 interface Sync<T> {
-  fetch(id: number): AxiosPromise<T>
-  save(data: T): AxiosPromise<T>
+  fetch(id: number): AxiosPromise
+  save(data: T): AxiosPromise
 }
 
 interface Events {
@@ -16,17 +16,46 @@ interface Events {
   trigger(eventName: string): void
 }
 
-export class Model<T> {
+interface HasId {
+  id?: number
+}
+
+export class Model<T extends HasId> {
   constructor(
     private attributes: ModelAttributes<T>,
     private events: Events,
     private sync: Sync<T>
   ) {}
 
-  get = this.attributes.get
   on = this.events.on
   trigger = this.events.trigger
-  set = this.attributes.set
-  fetch = this.sync.fetch
-  save = this.sync.save
+  get = this.attributes.get
+
+  set(update: T): void {
+    this.attributes.set(update)
+    this.events.trigger('change')
+  }
+
+  fetch(): void {
+    const id = this.get('id')
+
+    if (typeof id !== 'number') {
+      throw new Error('Cannot fetch without an id')
+    }
+
+    this.sync.fetch(id).then((response: AxiosResponse): void => {
+      this.set(response.data)
+    })
+  }
+
+  save(): void {
+    this.sync
+      .save(this.attributes.getAll())
+      .then((response: AxiosResponse): void => {
+        this.trigger('save')
+      })
+      .catch(() => {
+        this.trigger('error')
+      })
+  }
 }
